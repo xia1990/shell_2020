@@ -10,7 +10,7 @@ USER="ubuntu"
 
 function pull_commit(){
 	mkdir -p $ROOTPATH/$PROJECT_NAME
-	cd $ROOTPATH/$PROJECT_NAME
+	pushd $ROOTPATH/$PROJECT_NAME > /dev/null
 		#repo init -u ssh://"$USER"@"$GERRIT_IP":"$PORT"/manifest -m manifest.xml -b master --no-repo-verify
 		#repo sync -j4
 	
@@ -26,16 +26,20 @@ function pull_commit(){
 		for name in `cat project_info.txt`
 		do
 			#根据name属性值 ，在xml中查找对应的path属性值 
-			project_path=`grep "$name" .repo/manifests/manifest.xml | grep "path" | awk -F'"' '{print $4}'`
-			#echo $project_path
-		
+			grep "$name" .repo/manifests/manifest.xml | grep "path" > /dev/null
+			if [ "$?" == 0 ];then
+				project_path=`grep "$name" .repo/manifests/manifest.xml | grep "path" | awk -F'"' '{print $4}'`
+			else
+				project_path=`grep "$name" .repo/manifests/manifest.xml | awk -F'"' '{print $2}'`
+			fi
+			
 			change_url=`cat project_info.txt | grep "$name" | awk '{print $2}'`
-			cd $project_path
+
+			pushd ./$project_path > /dev/null
 				git fetch ssh://"$USER"@"$GERRIT_IP":"$PORT"/"$name" "$change_url" && git cherry-pick FETCH_HEAD
-				echo $name "cherry-pick成功"
-			cd -
+			popd
 		done		
-	cd -
+	popd
 }
 
 ###############################
